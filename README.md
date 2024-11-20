@@ -6,7 +6,7 @@ ENGLISH | [简体中文](README_CN.md)
 - [Applications](#Applications)
     - [Event Reconstruction](#Recon)
     - [Jet Tagging](#Tagging)
-    - [Magnetic Field Prediction](#磁场预测)
+    - [Magnetic Field Prediction](#FieldPred)
 - [Installation](#Installation)
 
 ## **Introduction**
@@ -23,25 +23,25 @@ MindCos is developed based on MindSpore, and it supports the analysis of a varie
 
 ### Event Reconstruction
 
-|Application|dataset|Network|
-|-----|-----|-----|
-|Tracking Reconstruction|Muon g-2 Experiment synthetic data|GNN|
-|Neutrino Reconstruction|TRIDENT Simulation data|GNN|
+|Application|dataset|Network|GPU|CPU|
+|-----|-----|-----|-----|-----|
+|Tracking Reconstruction|Muon g-2 Experiment synthetic data|GNN|X|X|
+|Neutrino Reconstruction|TRIDENT Simulation data|GNN|X|X|
 
 ### Jet Tagging
 
-|Application|dataset|Network|
-|-----|-----|-----|
-|ParticleNet|Top Tagging|EdgeConv|
-|LLP@CEPC|CEPC Simulation data|Heterogeneous GNN|
-|ParT|Top Tagging|Transformer|
+|Application|dataset|Network|GPU|CPU|
+|-----|-----|-----|-----|-----|
+|ParticleNet|Top Tagging|EdgeConv|X|X|
+|LLP@CEPC|CEPC Simulation data|Heterogeneous GNN|✔️|✔️|
+|LorentzNet|Top Tagging|Transformer|✔️|✔️|
 
 ### Magnetic Filed Prediction
 
-|Application|dataset|Network|
-|-----|-----|-----|
-|Magnetic Field Prediction|Helmholtz coil data|PINN|
-|Magnetic Field Prediction|Helmholtz coil data|DeepONet|
+|Application|dataset|Network|GPU|CPU|
+|-----|-----|-----|-----|-----|
+|Magnetic Field Prediction|Helmholtz coil data|PINN|✔️|✔️|
+|Magnetic Field Prediction|Helmholtz coil data|DeepONet|X|X|
 
 ## Installation
 
@@ -60,5 +60,7 @@ Install the dependency:
 ```bash
 pip install -r requirements.txt
 ```
+
+Install the GPU version: [install](gpu_version_install.txt)
 
 

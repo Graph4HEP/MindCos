@@ -23,25 +23,25 @@ MindCos是基于昇思MindSpore开发的，它不仅支持多种实验数据的�
 
 ### 事例重建
 
-|案例|数据集|模型架构|
-|-----|-----|-----|
-|径迹重建|缪子反常磁矩实验合成数据|图神经网络|
-|中微子重建|海玲计划模拟数据|图神经网络|
+|案例|数据集|模型架构|GPU|CPU|
+|-----|-----|-----|-----|-----|
+|径迹重建|缪子反常磁矩实验合成数据|图神经网络|X|X|
+|中微子重建|海玲计划模拟数据|图神经网络|X|X|
 
 ### 喷注鉴别
 
-|案例|数据集|模型架构|
-|-----|-----|-----|
-|ParticleNet|Top Tagging|EdgeConv|
-|LLP@CEPC|CEPC模拟数据|异构图神经网络|
-|P-ViT|Top Tagging|ViT|
+|案例|数据集|模型架构|GPU|CPU|
+|-----|-----|-----|-----|-----|
+|ParticleNet|Top Tagging|EdgeConv|X|X|
+|LLP@CEPC|CEPC模拟数据|异构图神经网络|✔️|✔️|
+|LorentzNet|QG Tagging|LGEB|✔️|✔️|
 
 ### 磁场预测
 
-|案例|数据集|模型架构|
-|-----|-----|-----|
-|磁场预测|亥姆霍兹线圈磁场数据|PINN|
-|磁场预测|亥姆霍兹线圈磁场数据|DeepONet|
+|案例|数据集|模型架构|GPU|CPU|
+|-----|-----|-----|-----|-----|
+|磁场预测|亥姆霍兹线圈磁场数据|PINN|✔️|✔️|
+|磁场预测|亥姆霍兹线圈磁场数据|DeepONet|X|X|
 
 ## 安装教程
 
@@ -59,6 +59,8 @@ pip install https://ms-release.obs.cn-north-4.myhuaweicloud.com/2.2.14/MindSpore
 ```bash
 pip install -r requirements.txt
 ```
+
+安装GPU版本的mindspore：[安装说明](gpu_version_install.txt)
 
 
 
