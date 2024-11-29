@@ -1,0 +1,42 @@
+instruction to install the gpu version of mindspore:
+
+1. recomand to use cuda 11.6
+2. install the dependence: 
+   run:
+   sudo apt-get install linux-headers-$(uname -r) gcc-7
+3. at step2, it may said error like no gcc-7 found, run 'sudo apt-get update'
+4. even run step3, the error may still exist
+   add 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe' to '/etc/apt/sources.list' and run step3
+5. install cuda 11.6
+   run:
+   wget https://developer.download.nvidia.com/compute/cuda/11.6.0/local_installers/cuda_11.6.0_510.39.01_linux.run
+   sudo sh cuda_11.6.0_510.39.01_linux.run
+   #when installing cuda 11.6, usually the driver is already installed from other versions of cuda, so you can install cuda 11.6 without the driver
+   #when installing cuda 11.6, the system may already have other versions of cuda, and a soft link is built like 'cuda -> cuda-12.4'
+   #to use mindspore with GPU, we need to rebuild the soft link like 'cuda -> cuda-11.6'
+   cd /usr/local/
+   sudo rm -rf cuda 
+   sudo ln -s /usr/local/cuda-11.6/ /usr/local/cuda
+   echo -e "export PATH=/usr/local/cuda/bin:\$PATH" >> ~/.bashrc
+   echo -e "export LD_LIBRARY_PATH=/usr/local/cuda/lib64:\$LD_LIBRARY_PATH" >> ~/.bashrc
+   echo -e "export CUDA_HOME=/usr/local/cuda"
+   source ~/.bashrc
+6. install cudnn 8.5, go to 'https://developer.nvidia.com/rdp/cudnn-archive' and download the 8.5 tar.xz file 
+   (log in the website can accelerate the download speed)
+   run:
+   tar -xvf cudnn-linux-x86_64-8.5.0.96_cuda11-archive.tar.xz
+   cd cudnn-linux-x86_64-8.5.0.96_cuda11-archive
+   sudo cp include/cudnn*.h /usr/local/cuda-11.6/include
+   sudo cp lib64/libcudnn* /usr/local/cuda-11.6/lib64
+   sudo chmod a+r /usr/local/cuda-11.6/include/cudnn*.h /usr/local/cuda-11.6/lib64/libcudnn*
+7. install mindspore-dev version: 
+   pip install mindspore-dev -i https://pypi.tuna.tsinghua.edu.cn/simple
+8. verify the installation:
+   run:
+   python -c "import mindspore;mindspore.set_context(device_target='GPU');mindspore.run_check()"
+9. if the output is:
+   "
+   MindSpore version: 版本号
+   The result of multiplication calculation is correct, MindSpore has been installed on platform [GPU] successfully!
+   "
+   then the installation is finished, and you can play with mindspore with GPU 

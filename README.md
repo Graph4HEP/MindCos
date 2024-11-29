@@ -25,16 +25,16 @@ MindCos is developed based on MindSpore, and it supports the analysis of a varie
 
 |Application|dataset|Network|GPU|CPU|
 |-----|-----|-----|-----|-----|
-|Tracking Reconstruction|Muon g-2 Experiment synthetic data|GNN|X|X|
+|Tracking Reconstruction|Muon g-2 Experiment synthetic data|GNN|✔|✔|
 |Neutrino Reconstruction|TRIDENT Simulation data|GNN|X|X|
 
 ### Jet Tagging
 
 |Application|dataset|Network|GPU|CPU|
 |-----|-----|-----|-----|-----|
-|ParticleNet|Top Tagging|EdgeConv|X|X|
-|LLP@CEPC|CEPC Simulation data|Heterogeneous GNN|✔️|✔️|
-|LorentzNet|Top Tagging|Transformer|✔️|✔️|
+|ParticleNet|Top-Quark Data|EdgeConv|X|X|
+|LLP@CEPC|CEPC Simulation Higgs Data|Heterogeneous GNN|✔️|✔️|
+|LorentzNet|Quark-Gluon Data|Lorentz Equivariant Graph Neural Network|✔️|✔|
 
 ### Magnetic Filed Prediction
 

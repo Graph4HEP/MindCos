@@ -1,2 +1,4 @@
 energyflow
 scikit-learn
+dgl
+uproot

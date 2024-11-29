@@ -3,11 +3,12 @@ import numpy as np
 import energyflow
 from sklearn.preprocessing import OneHotEncoder
 import time
-#import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-#import warnings
-#warnings.filterwarnings('ignore')
-
+import os,sys
+import warnings
+GPU_ID = sys.argv[1]
+os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID
+warnings.filterwarnings('ignore')
+import logging
 
 #mindspore packages
 import mindspore.dataset as mds
@@ -17,8 +18,10 @@ from mindspore import Tensor, ops
 import mindspore.nn as nn
 from mindspore import Parameter
 from mindspore.common.initializer import XavierUniform
-#from mindspore import context
-#context.set_context(mode=context.GRAPH_MODE, device_target="CPU")
+from mindspore import context
+
+device = sys.argv[2]
+context.set_context(mode=1, device_target=device)
 
 # 定义 MindSpore 的数据集类
 class JetDataset(mds.Dataset):
@@ -42,6 +45,7 @@ class JetDataset(mds.Dataset):
     def build(self, column_names=None):
         # 构建数据集
         ds = mds.NumpySlicesDataset((self.label, self.p4s, self.nodes, self.atom_mask), column_names=['label', 'p4s', 'nodes', 'atom_mask'], sampler=mds.RandomSampler())
+        #ds = mds.NumpySlicesDataset((self.label, self.p4s, self.nodes, self.atom_mask), column_names=['label', 'p4s', 'nodes', 'atom_mask'], sampler=None, shuffle=False)
         # 设置 batch 大小和重复次数
         ds = ds.batch(self.batch_size, drop_remainder=True).repeat(self.repeat_size)
         return ds
@@ -124,7 +128,7 @@ class LGEB(nn.Cell):
         # Define the edge feature transformation network (phi_e)
         self.phi_e = nn.SequentialCell([
             nn.Dense(n_input * 2 + n_edge_attr, n_hidden, has_bias=False),
-            nn.BatchNorm1d(n_hidden),
+            #nn.BatchNorm1d(n_hidden),
             nn.ReLU(),
             nn.Dense(n_hidden, n_hidden),
             nn.ReLU()
@@ -215,11 +219,20 @@ class LGEB(nn.Cell):
     def construct(self, h, x, edges, node_attr=None):
         i, j = edges
         norms, dots, x_diff = self.minkowski_feats(edges, x)
-
+        #print('inut:',norms.mean(), dots.mean(), x_diff.mean())
+        logging.info('inut:',norms.mean(), dots.mean(), x_diff.mean())
+        #print('h:', h.mean())
+        logging.info('h:', h.mean())
         m = self.m_model(h[i], h[j], norms, dots)  # [B*N, hidden]
+        #print('m', m.mean())
+        logging.info('m', m.mean())
         if not self.last_layer:
             x = self.x_model(x, edges, x_diff, m)
+            #print('x:', x.mean())
+            logging.info('x:', x.mean())
         h = self.h_model(h, edges, m, node_attr)
+        #print('h:',h.mean())
+        logging.info('h:',h.mean())
         return h, x, m
 
 class LorentzNet(nn.Cell):
@@ -250,8 +263,11 @@ class LorentzNet(nn.Cell):
         ])
 
     def construct(self, scalars, x, edges, node_mask, edge_mask, n_nodes):
+        #print('scalars:', scalars.mean())
+        logging.info('scalars:', scalars.mean())
         h = self.embedding(scalars)
-        #print(h.shape)
+        #print('h embed:',h.mean())
+        logging.info('h embed:',h.mean())
         for i in range(self.n_layers):
             h, x, _ = self.LGEBs[i](h, x, edges, node_attr=scalars)
             #print(h.shape, x.shape)
@@ -270,7 +286,19 @@ model = LorentzNet(n_scalar = 8, n_hidden = 72, n_class = 2,
                        dropout = 0.2, n_layers = 6,
                        c_weight = 1e-3)
 
-optimizer = nn.optim.Adam(model.trainable_params(), learning_rate=0.001)
+def process_bar_train(num, total, dt, loss, acc, Type=''):
+    rate = float(num)/total
+    ratenum = int(50*rate)
+    estimate = dt/rate*(1-rate)
+    r = '\r{} [{}{}]{}/{} - used {:.1f}s / left {:.1f}s / loss {:.10f} / acc {:.4f} '.format(Type, '*'*ratenum,' '*(50-ratenum), num, total, dt, estimate, loss, acc)
+    sys.stdout.write(r)
+    sys.stdout.flush()
+
+
+lr = [0.0002, 0.0004, 0.0006, 0.0008, 0.001, 0.0008535533905932737, 0.0005, 0.00014644660940672628, 0.001, 0.0009619397662556434, 0.0008535533905932737, 0.000691341716182545, 0.0005, 0.0003086582838174551, 0.00014644660940672628, 3.806023374435663e-05, 0.001, 0.0009903926402016153, 0.0009619397662556434, 0.0009157348061512727, 0.0008535533905932737, 0.0007777851165098011, 0.000691341716182545, 0.0005975451610080642, 0.0005, 0.00040245483899193594, 0.0003086582838174551, 0.00022221488349019903, 0.00014644660940672628, 8.426519384872733e-05, 3.806023374435663e-05, 9.607359798384786e-06, 4.803679899192393e-06, 2.4018399495961964e-06, 1.2009199747980982e-06]
+Nbatch = 2500
+lr = [x for x in lr for _ in range(Nbatch)]
+optimizer = nn.optim.Adam(model.trainable_params(), learning_rate=lr)
 loss_fn = nn.CrossEntropyLoss()
 
 def forward_fn(nodes, atom_positions, edges, atom_mask, edge_mask, n_nodes, label):
@@ -300,12 +328,17 @@ def train_loop(model, dataloader):
         atom_mask = atom_mask.reshape(batch_size * n_nodes, -1)
         edge_mask = edge_mask.reshape(batch_size * n_nodes * n_nodes, -1)
         nodes = nodes.reshape(batch_size * n_nodes, -1)
-        (_, logits), grads = grad_fn(nodes, atom_positions, edges, atom_mask, edge_mask, n_nodes, label)
+        (losses, logits), grads = grad_fn(nodes, atom_positions, edges, atom_mask, edge_mask, n_nodes, label)
+        if ops.IsNan()(grads).sum()>0:
+            print(res)
+            sys.exit()
+        grads = ops.clip_by_norm(grads, max_norm=1)
         optimizer(grads)
-        loss += loss_fn(logits, label).asnumpy()
+        loss += losses.asnumpy()
         correct += (logits.argmax(1) == label).asnumpy().sum()
         total += len(p4s)
-        print(f"loss: {loss/(i+1):>7f} acc: {100*correct/total:>0.1f} [{i:>3d}/{num_batches:>3d}] time: [{time.time()-st:>0.1f}/{(time.time()-st)/(i+1)*num_batches:>0.1f}]")
+        #print(f"loss: {loss/(i+1):>7f} acc: {100*correct/total:>0.1f} [{i+1:>3d}/{num_batches:>3d}] time: [{time.time()-st:>0.1f}/{(time.time()-st)/(i+1)*num_batches:>0.1f}]")
+        process_bar_train(i+1, num_batches, time.time()-st, loss/(i+1), 100*correct/total, '')
 
 def test_loop(model, dataloader, loss_fn):
     num_batches =len(dataloader)
@@ -323,8 +356,7 @@ def test_loop(model, dataloader, loss_fn):
         atom_mask = atom_mask.reshape(batch_size * n_nodes, -1)
         edge_mask = edge_mask.reshape(batch_size * n_nodes * n_nodes, -1)
         nodes = nodes.reshape(batch_size * n_nodes, -1)
-        pred = model(scalars=nodes, x=atom_positions, edges=edges, node_mask=atom_mask,
-                         edge_mask=edge_mask, n_nodes=n_nodes)
+        pred = model(scalars=nodes, x=atom_positions, edges=edges, node_mask=atom_mask, edge_mask=edge_mask, n_nodes=n_nodes)
         total += len(p4s)
         test_loss += loss_fn(pred, label).asnumpy()
         correct += (pred.argmax(1) == label).asnumpy().sum()
