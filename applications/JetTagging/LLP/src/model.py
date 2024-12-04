@@ -47,9 +47,7 @@ class LLPB(nn.Cell):
         ])
     # m = phi_e(hi,hj,e)
     def m_model(self, i, j, h, e):
-        print(h[i].shape, h[j].shape, e.shape)
         out = ops.Concat(1)((h[i], h[j], e))
-        print(out.shape)
         out = self.phi_e(out)
         return out
     # xij = xij + phi_m(mij)xij
@@ -100,24 +98,21 @@ class HeteroNet(nn.Cell):
 
     def construct(self, clu_ndata, clu_edata, clu_src, clu_dst, trk_ndata, trk_edata, trk_src, trk_dst):
         h_clu, e_clu, h_trk, e_trk = self.embed(clu_ndata, clu_edata, trk_ndata, trk_edata)
-        print(h_clu.shape, e_clu.shape, h_trk.shape, e_trk.shape)
         clu_src = clu_src.astype(mindspore.int32)
         clu_dst = clu_dst.astype(mindspore.int32)
         trk_src = trk_src.astype(mindspore.int32)
         trk_dst = trk_dst.astype(mindspore.int32)
         for i in range(self.n_layers):
             h_clu, e_clu = self.LLPB_clu[i](clu_src, clu_dst, h_clu, e_clu)
-            print(h_clu.shape, e_clu.shape)
             h_trk, e_trk = self.LLPB_trk[i](trk_src, trk_dst, h_trk, e_trk)
-            print(h_trk.shape, e_trk.shape)
             h = ops.Concat(0)((h_clu, h_trk))
             e = ops.Concat(0)((e_clu, e_trk))
             h = self.combine_h(h)
             e = self.combine_e(e)
             h_clu = h[:len(clu_ndata)]
-            h_trk = h[len(trk_ndata):]
+            h_trk = h[len(clu_ndata):]
             e_clu = e[:len(clu_edata)]
-            e_trk = e[len(trk_edata):]
+            e_trk = e[len(clu_edata):]
         h = ops.Reshape()(h, (-1, len(clu_ndata)+len(trk_ndata), self.embed_size))
         h = ops.ReduceMean(keep_dims=False)(h, 1)
         pred = self.graph_dec(h)
